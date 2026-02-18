@@ -1,0 +1,68 @@
+{
+  "servers": [
+    {
+      "name": "math",
+      "script": "mcp_agent_math.py",
+      "description": "Math operations server",
+      "enabled": true,
+      "tools": [
+        {
+          "name": "calculate",
+          "description": "Calculate mathematical expression"
+        },
+        {
+          "name": "factorial",
+          "description": "Calculate factorial of a number"
+        },
+        {
+          "name": "is_prime",
+          "description": "Check if a number is prime"
+        }
+      ]
+    },
+    {
+      "name": "utils",
+      "script": "mcp_agent_utils.py",
+      "description": "Utility operations server",
+      "enabled": true,
+      "tools": [
+        {
+          "name": "get_current_time",
+          "description": "Get current time"
+        },
+        {
+          "name": "get_date_info",
+          "description": "Get detailed date information"
+        },
+        {
+          "name": "format_text",
+          "description": "Format text in different styles"
+        },
+        {
+          "name": "count_words",
+          "description": "Count words in text"
+        },
+        {
+          "name": "reverse_text",
+          "description": "Reverse text"
+        }
+      ]
+    },
+    {
+      "name": "legacy",
+      "script": "mcp_agent.py",
+      "description": "Legacy MCP server (original)",
+      "enabled": false,
+      "tools": [
+        {
+          "name": "calculate",
+          "description": "Calculate mathematical expression"
+        },
+        {
+          "name": "get_current_time",
+          "description": "Get current time"
+        }
+      ]
+    }
+  ]
+}
