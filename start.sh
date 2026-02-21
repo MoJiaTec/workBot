@@ -35,4 +35,4 @@ fi
 echo ""
 echo "🚀 Starting WorkBot Agent..."
 echo ""
-python3 source/main.py
+python3 core/main.py

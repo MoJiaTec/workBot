@@ -2,7 +2,7 @@
   "servers": [
     {
       "name": "math",
-      "script": "mcp_agent_math.py",
+      "script": "mcp/servers/math.py",
       "description": "Math operations server",
       "enabled": true,
       "tools": [
@@ -22,7 +22,7 @@
     },
     {
       "name": "utils",
-      "script": "mcp_agent_utils.py",
+      "script": "mcp/servers/utils.py",
       "description": "Utility operations server",
       "enabled": true,
       "tools": [
@@ -50,7 +50,7 @@
     },
     {
       "name": "legacy",
-      "script": "mcp_agent.py",
+      "script": "mcp/servers/legacy.py",
       "description": "Legacy MCP server (original)",
       "enabled": false,
       "tools": [

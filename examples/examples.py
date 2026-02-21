@@ -3,9 +3,9 @@
 Example script demonstrating how to use the WorkBot agent programmatically
 """
 
-from source.agent import SimpleAgent, Tool
-from source.tools import read_file, write_file, calculate
-from source.config import AgentConfig
+from core.agent import SimpleAgent, Tool
+from core.tools import read_file, write_file, calculate
+from core.config import AgentConfig
 
 def example_basic_usage():
     """Example: Basic agent usage"""

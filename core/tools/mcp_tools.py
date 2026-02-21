@@ -22,7 +22,9 @@ class MCPClient:
         """Start the MCP server"""
         try:
             import os
-            script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), self.server_script)
+            # server_script is relative to project root (e.g. "mcp/servers/math.py")
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            script_path = os.path.join(project_root, self.server_script)
             
             # Start MCP server as subprocess
             self.server_process = subprocess.Popen(
@@ -182,7 +184,7 @@ class MCPClient:
 class MCPManager:
     """Manager for multiple MCP servers"""
     
-    def __init__(self, config_path: str = "mcp_config.json"):
+    def __init__(self, config_path: str = "mcp/config.json"):
         self.config_path = config_path
         self.clients: Dict[str, MCPClient] = {}
         self.config = self._load_config()
@@ -191,31 +193,36 @@ class MCPManager:
     def _load_config(self) -> Dict:
         """Load MCP configuration"""
         try:
-            # Get project root directory
-            current_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            config_file = os.path.join(current_dir, self.config_path)
+            # Get project root directory (core/tools/ -> core/ -> project root)
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            config_file = os.path.join(project_root, self.config_path)
             
             if os.path.exists(config_file):
                 with open(config_file, 'r') as f:
-                    return json.load(f)
+                    config = json.load(f)
+                    # Store project_root for script path resolution
+                    self._project_root = project_root
+                    return config
             else:
-                # Default configuration
+                # Default configuration pointing to new mcp/servers/ layout
+                self._project_root = project_root
                 return {
                     "servers": [
                         {
                             "name": "math",
-                            "script": "mcp_agent_math.py",
+                            "script": "mcp/servers/math.py",
                             "enabled": True
                         },
                         {
                             "name": "utils",
-                            "script": "mcp_agent_utils.py",
+                            "script": "mcp/servers/utils.py",
                             "enabled": True
                         }
                     ]
                 }
         except Exception as e:
             print(f"Error loading MCP config: {e}")
+            self._project_root = ""
             return {"servers": []}
     
     def _initialize_clients(self):
@@ -223,6 +230,7 @@ class MCPManager:
         for server in self.config.get("servers", []):
             if server.get("enabled", True):
                 name = server["name"]
+                # script path is relative to project root
                 script = server["script"]
                 self.clients[name] = MCPClient(name, script)
     

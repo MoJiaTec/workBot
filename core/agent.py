@@ -20,7 +20,8 @@ class Tool:
     name: str
     description: str
     func: Callable
-    
+    tool_type: str = "builtin"  # builtin | skill | mcp
+
     def to_dict(self):
         return {
             "name": self.name,
@@ -53,7 +54,57 @@ class SimpleAgent:
     def register_tool(self, tool: Tool):
         """Register a tool"""
         self.tools[tool.name] = tool
-        logger.info(f"Registered tool: {tool.name}")
+        type_icon = {"builtin": "🔧", "skill": "📦", "mcp": "🔌"}.get(tool.tool_type, "🔧")
+        logger.info(f"Registered tool [{tool.tool_type}]: {tool.name}")
+        logger.debug(f"{type_icon} [{tool.tool_type.upper()}] {tool.name}")
+
+    def auto_discover(self, project_root: str = None) -> int:
+        """
+        Auto-discover and register all skills and MCP tools.
+
+        Scans the skills/ directory for SKILL.md metadata and reads
+        mcp/config.json to find MCP server tools, then registers them all.
+
+        Args:
+            project_root: Root directory of the project. Defaults to the
+                          parent directory of the core/ folder.
+
+        Returns:
+            Number of tools successfully registered.
+        """
+        if project_root is None:
+            # core/ -> project root
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        try:
+            from discovery import AutoDiscovery
+        except ImportError:
+            # Fallback: add core dir to path
+            import sys
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from discovery import AutoDiscovery
+
+        discovery = AutoDiscovery(project_root)
+        tool_defs = discovery.discover_all()
+
+        registered = 0
+        for tool_name, description, func in tool_defs:
+            if func is None:
+                logger.warning(f"[AutoDiscover] Skipping '{tool_name}': no callable found")
+                continue
+            if tool_name in self.tools:
+                logger.debug(f"[AutoDiscover] Tool '{tool_name}' already registered, skipping")
+                continue
+            # Infer tool type from name prefix
+            if tool_name.startswith("mcp_"):
+                t_type = "mcp"
+            else:
+                t_type = "skill"
+            self.register_tool(Tool(name=tool_name, description=description, func=func, tool_type=t_type))
+            registered += 1
+
+        logger.info(f"[AutoDiscover] Registered {registered}/{len(tool_defs)} discovered tools")
+        return registered
         
     def _build_tools_description(self) -> str:
         """Build formatted tools description"""
@@ -104,7 +155,7 @@ class SimpleAgent:
             logger.error(f"Error calling Claude: {e}")
             return f"Error: {str(e)}"
     
-    def execute_tool(self, tool_call: Dict) -> str:
+    def execute_tool(self, tool_call: Dict, call_index: int = 0) -> str:
         """Execute a tool call"""
         tool_name = tool_call.get("tool")
         params = tool_call.get("params", {})
@@ -112,16 +163,36 @@ class SimpleAgent:
         if tool_name not in self.tools:
             error_msg = f"Unknown tool: {tool_name}"
             logger.error(error_msg)
+            print(f"\n❌ [Tool #{call_index}] Unknown tool: {tool_name}")
             return error_msg
         
+        tool = self.tools[tool_name]
+        type_icon = {"builtin": "🔧", "skill": "📦", "mcp": "🔌"}.get(tool.tool_type, "🔧")
+        type_label = tool.tool_type.upper()
+
+        # Print tool invocation header
+        index_label = f" #{call_index}" if call_index else ""
+        print(f"\n{type_icon} [Tool{index_label}] [{type_label}] {tool_name}")
+        if params:
+            param_items = list(params.items())
+            for i, (k, v) in enumerate(param_items):
+                v_str = str(v)
+                preview = v_str[:100] + "..." if len(v_str) > 100 else v_str
+                connector = "└─" if i == len(param_items) - 1 else "├─"
+                print(f"     {connector} {k}: {preview}")
+
         logger.info(f"Executing tool: {tool_name} with params: {params}")
         
         try:
             result = self.tools[tool_name].func(**params)
+            result_str = str(result)
+            preview = result_str[:150] + "..." if len(result_str) > 150 else result_str
+            print(f"     └─ ✅ Result: {preview}")
             logger.info(f"Tool {tool_name} executed successfully")
-            return str(result)
+            return result_str
         except Exception as e:
             error_msg = f"Tool execution error: {str(e)}"
+            print(f"     └─ ❌ Error: {e}")
             logger.error(error_msg)
             return error_msg
     
@@ -144,23 +215,37 @@ class SimpleAgent:
             max_iterations = self.config.max_iterations if self.config else 5
         
         logger.info(f"Starting agent run with input: {user_input[:100]}...")
-        
+        print(f"\n{'─' * 50}")
+        print(f"📥 User: {user_input}")
+        print(f"{'─' * 50}")
+
         context = ""
         iteration = 0
+        tool_call_count = 0
         
         while iteration < max_iterations:
             iteration += 1
             logger.info(f"Iteration {iteration}/{max_iterations}")
-            
+            print(f"\n💭 [Step {iteration}/{max_iterations}] Thinking...")
+
             # Call Claude
             response = self.call_claude(user_input, context)
-            
+
+            # Print reasoning (everything before TOOL_CALL line, if any)
+            reasoning = re.split(r'TOOL_CALL:', response)[0].strip()
+            if reasoning:
+                print(f"\n🧠 [Reasoning]")
+                for line in reasoning.splitlines():
+                    if line.strip():
+                        print(f"   {line}")
+
             # Check for tool call
             tool_call = self._parse_tool_call(response)
             
             if tool_call:
+                tool_call_count += 1
                 # Execute tool
-                tool_result = self.execute_tool(tool_call)
+                tool_result = self.execute_tool(tool_call, call_index=tool_call_count)
                 
                 # Add to context for next iteration
                 context += f"\n\nTool '{tool_call.get('tool')}' returned:\n{tool_result}\n"
@@ -168,10 +253,16 @@ class SimpleAgent:
                 # Continue loop to let Claude process the result
                 continue
             else:
-                # No tool call, return response
+                # No tool call, this is the final answer
                 logger.info("Agent completed successfully")
+                print(f"\n{'─' * 50}")
+                print(f"✅ [Done] Completed in {iteration} step(s), {tool_call_count} tool call(s)")
+                print(f"{'─' * 50}")
                 return response
         
         # Max iterations reached
         logger.warning(f"Max iterations ({max_iterations}) reached")
+        print(f"\n{'─' * 50}")
+        print(f"⚠️  [Done] Max iterations ({max_iterations}) reached, {tool_call_count} tool call(s)")
+        print(f"{'─' * 50}")
         return response + "\n\n(Note: Maximum iterations reached)"

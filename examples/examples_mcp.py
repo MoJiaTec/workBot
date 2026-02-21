@@ -6,8 +6,8 @@ Example demonstrating MCP (Model Context Protocol) integration
 import sys
 import os
 
-# Add source to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'source'))
+# Add core to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'core'))
 
 from agent import SimpleAgent, Tool
 from tools.mcp_tools import mcp_calculate, mcp_get_time
@@ -101,7 +101,7 @@ def main():
         print("=" * 60)
         print("\n💡 Tips:")
         print("  - MCP tools are now integrated into the agent")
-        print("  - Run 'python source/main.py' to use them interactively")
+        print("  - Run 'python core/main.py' to use them interactively")
         print("  - MCP server runs in the background when tools are called")
         
     except Exception as e:

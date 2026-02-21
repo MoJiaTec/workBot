@@ -6,8 +6,8 @@ Example demonstrating Multiple MCP Servers integration
 import sys
 import os
 
-# Add source to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'source'))
+# Add core to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'core'))
 
 from agent import SimpleAgent, Tool
 from tools.mcp_tools import (
@@ -181,11 +181,11 @@ def main():
         print("  - Each server provides specialized tools")
         print("  - Use mcp_list_servers() to see all servers")
         print("  - Use mcp_list_tools(server_name) to see server tools")
-        print("  - Run 'python source/main.py' for interactive mode")
+        print("  - Run 'python core/main.py' for interactive mode")
         print("\n📝 Configuration:")
-        print("  - Edit mcp_config.json to add/remove servers")
-        print("  - Create new MCP server files (mcp_agent_*.py)")
-        print("  - Update mcp_tools.py to add tool implementations")
+        print("  - Edit mcp/config.json to add/remove servers")
+        print("  - Create new MCP server files in mcp/servers/")
+        print("  - Update core/tools/mcp_tools.py to add tool implementations")
         
     except Exception as e:
         print(f"\n❌ Error running examples: {e}")

@@ -6,8 +6,8 @@ Quick test to verify the agent setup
 import sys
 import os
 
-# Add source to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'source'))
+# Add core to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'core'))
 
 def test_imports():
     """Test if all modules can be imported"""
@@ -154,7 +154,7 @@ def main():
     
     if passed == total:
         print("✅ All tests passed! Agent is ready to use.")
-        print("\nRun: python source/main.py")
+        print("\nRun: python core/main.py")
     elif passed >= total - 1 and not results[-1]:
         print("⚠️  Almost ready! Install claude-internal to use the agent.")
     else:
